@@ -66,6 +66,28 @@ class Cell:
 
         return corners
 
+    def map_center(self) -> Point:
+        min_x = min(self._x1, self._x2)
+        max_x = max(self._x1, self._x2)
+        min_y = min(self._y1, self._y2)
+        max_y = max(self._y1, self._y2)
+
+        center = Point((max_x + min_x) / 2, (max_y + min_y) / 2)
+        return center
+
+    def draw_move(self, to_cell, undo=False) -> None:
+        canvas = self._win.canvas
+        color = "red" if undo else "gray"
+
+        if to_cell is None or not isinstance(to_cell, Cell):
+            raise ValueError("Invalid cell")
+        if to_cell is self:
+            raise ValueError("Can't use from cell as destination cell")
+
+        from_cell = self.map_center()
+        to_cell = to_cell.map_center()
+        Line(from_cell, to_cell).draw(canvas, color)
+
 
 class Window:
     def __init__(self, width, height):
@@ -112,6 +134,18 @@ def main():
     cell2 = Cell(250, 350, 250, 350, win)
     cell2.has_right_wall = False
     cell2.draw()
+
+    try:
+        cell1.draw_move(cell2, True)
+        cell1.draw_move(cell2, False)
+        cell1.draw_move("hello", False)
+    except Exception as e:
+        print(f"Error using a string instead of cell object: {e}")
+
+    try:
+        cell1.draw_move(cell1, True)
+    except Exception as e:
+        print(f"Error moving to the same cell: {e}")
 
     win.wait_for_close()
 
