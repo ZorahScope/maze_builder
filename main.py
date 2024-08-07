@@ -1,4 +1,5 @@
 from tkinter import Tk, BOTH, Canvas
+import time
 
 
 class Point:
@@ -19,10 +20,9 @@ class Line:
 
 
 class Cell:
-    def __init__(self, x1: int, x2: int, y1: int, y2: int, win):
-        if x1 == x2 or y1 == y2:
-            raise ValueError("Cell must be a square/rectangle")
-
+    def __init__(
+        self, x1: int = None, x2: int = None, y1: int = None, y2: int = None, win=None
+    ):
         self._x1 = x1
         self._x2 = x2
         self._y1 = y1
@@ -89,6 +89,55 @@ class Cell:
         Line(from_cell, to_cell).draw(canvas, color)
 
 
+class Maze:
+    def __init__(
+        self,
+        x1,
+        y1,
+        num_rows,
+        num_cols,
+        cell_size_x,
+        cell_size_y,
+        win,
+    ):
+
+        self.x1 = x1
+        self.y1 = y1
+        self.num_rows = num_rows
+        self.num_cols = num_cols
+        self.cell_size_x = cell_size_x
+        self.cell_size_y = cell_size_y
+        self.win = win
+        self._create_cells()
+
+    def _create_cells(self) -> None:
+        self._cells = [
+            [Cell() for _ in range(self.num_rows)] for _ in range(self.num_cols)
+        ]
+        for col_count, column in enumerate(self._cells, start=1):
+            for row_count, cell in enumerate(column, start=1):
+                i = self.x1 + (col_count - 1) * self.cell_size_x
+                j = self.y1 + (row_count - 1) * self.cell_size_y
+                self._draw_cell(cell, i, j)
+
+    def _draw_cell(self, cell, i, j) -> None:
+        i2 = i + self.cell_size_x
+        j2 = j + self.cell_size_y
+        cell._x1 = i
+        cell._y1 = j
+        cell._x2 = i2
+        cell._y2 = j2
+        cell._win = self.win
+        cell.draw()
+        self._animate()
+        return
+
+    def _animate(self) -> None:
+        self.win.redraw()
+        time.sleep(0.05)
+        return
+
+
 class Window:
     def __init__(self, width, height):
         self.width = width
@@ -119,33 +168,16 @@ class Window:
 
 def main():
     win = Window(800, 600)
-    # test lines and cells
-    line1 = Line(Point(100, 50), Point(700, 300))
-    line2 = Line(Point(200, 50), Point(500, 500))
-    line3 = Line(Point(350, 150), Point(200, 400))
-    win.draw_line(line1, "red")
-    win.draw_line(line2, "blue")
-    win.draw_line(line3, "green")
-
-    cell1 = Cell(100, 200, 100, 200, win)
-    cell1.has_bottom_wall = False
-    cell1.draw()
-
-    cell2 = Cell(250, 350, 250, 350, win)
-    cell2.has_right_wall = False
-    cell2.draw()
+    maze = Maze(50, 50, 10, 15, 30, 30, win)
 
     try:
-        cell1.draw_move(cell2, True)
+        cell1 = maze._cells[0][0]  # Access the cell at the top-left corner
+        cell2 = maze._cells[1][0]  # Access a neighboring cell
+        cell1.draw_move(cell2, True)  
         cell1.draw_move(cell2, False)
-        cell1.draw_move("hello", False)
-    except Exception as e:
-        print(f"Error using a string instead of cell object: {e}")
 
-    try:
-        cell1.draw_move(cell1, True)
     except Exception as e:
-        print(f"Error moving to the same cell: {e}")
+        print(f"Error: {e}")
 
     win.wait_for_close()
 
