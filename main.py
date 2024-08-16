@@ -14,9 +14,10 @@ class Line:
         self.p2 = p2
 
     def draw(self, canvas, fill_color):
-        canvas.create_line(
-            self.p1.x, self.p1.y, self.p2.x, self.p2.y, fill=fill_color, width=2
-        )
+        if canvas:
+            canvas.create_line(
+                self.p1.x, self.p1.y, self.p2.x, self.p2.y, fill=fill_color, width=2
+            )
 
 
 class Cell:
@@ -35,7 +36,7 @@ class Cell:
 
     def draw(self) -> None:
         corners = self.map_corners()
-        canvas = self._win.canvas
+        canvas = self._win.canvas if self._win else None
 
         if self.has_left_wall:
             Line(corners["top-left"], corners["bottom-left"]).draw(canvas, "black")
@@ -98,7 +99,7 @@ class Maze:
         num_cols,
         cell_size_x,
         cell_size_y,
-        win,
+        win=None,
     ):
 
         self.x1 = x1
@@ -133,8 +134,9 @@ class Maze:
         return
 
     def _animate(self) -> None:
-        self.win.redraw()
-        time.sleep(0.05)
+        if self.win:
+            self.win.redraw()
+            time.sleep(0.05)
         return
 
 
