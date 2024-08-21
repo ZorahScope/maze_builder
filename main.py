@@ -38,14 +38,27 @@ class Cell:
         corners = self.map_corners()
         canvas = self._win.canvas if self._win else None
 
-        if self.has_left_wall:
-            Line(corners["top-left"], corners["bottom-left"]).draw(canvas, "black")
-        if self.has_top_wall:
-            Line(corners["top-left"], corners["top-right"]).draw(canvas, "black")
-        if self.has_right_wall:
-            Line(corners["top-right"], corners["bottom-right"]).draw(canvas, "black")
-        if self.has_bottom_wall:
-            Line(corners["bottom-left"], corners["bottom-right"]).draw(canvas, "black")
+        walls = {
+            "left": (self.has_left_wall, corners["top-left"], corners["bottom-left"]),
+            "top": (self.has_top_wall, corners["top-left"], corners["top-right"]),
+            "right": (
+                self.has_right_wall,
+                corners["top-right"],
+                corners["bottom-right"],
+            ),
+            "bottom": (
+                self.has_bottom_wall,
+                corners["bottom-left"],
+                corners["bottom-right"],
+            ),
+        }
+
+        def draw_wall(has_wall, start_corner, end_corner, canvas):
+            color = "black" if has_wall else "#d9d9d9"
+            Line(start_corner, end_corner).draw(canvas, color)
+
+        for has_wall, start_corner, end_corner in walls.values():
+            draw_wall(has_wall, start_corner, end_corner, canvas)
 
     def map_corners(self) -> dict[str, Point]:
         min_x = min(self._x1, self._x2)
@@ -110,6 +123,7 @@ class Maze:
         self.cell_size_y = cell_size_y
         self.win = win
         self._create_cells()
+        self._break_entrance_and_exit()
 
     def _create_cells(self) -> None:
         self._cells = [
@@ -137,6 +151,17 @@ class Maze:
         if self.win:
             self.win.redraw()
             time.sleep(0.05)
+        return
+
+    def _break_entrance_and_exit(self) -> None:
+        if not self._cells:
+            return
+        entrance = self._cells[0][0]
+        exit = self._cells[-1][-1]
+        entrance.has_left_wall = False
+        exit.has_right_wall = False
+        entrance.draw()
+        exit.draw()
         return
 
 
@@ -175,7 +200,7 @@ def main():
     try:
         cell1 = maze._cells[0][0]  # Access the cell at the top-left corner
         cell2 = maze._cells[1][0]  # Access a neighboring cell
-        cell1.draw_move(cell2, True)  
+        cell1.draw_move(cell2, True)
         cell1.draw_move(cell2, False)
 
     except Exception as e:
