@@ -1,5 +1,8 @@
 from tkinter import Tk, BOTH, Canvas
 import time
+import random
+from collections import namedtuple
+from typing import Union
 
 
 class Point:
@@ -33,6 +36,7 @@ class Cell:
         self.has_right_wall = True
         self.has_top_wall = True
         self.has_bottom_wall = True
+        self.visited = False
 
     def draw(self) -> None:
         corners = self.map_corners()
@@ -113,6 +117,7 @@ class Maze:
         cell_size_x,
         cell_size_y,
         win=None,
+        seed=None,
     ):
 
         self.x1 = x1
@@ -124,6 +129,9 @@ class Maze:
         self.win = win
         self._create_cells()
         self._break_entrance_and_exit()
+        if seed is not None:
+            random.seed(seed)
+        self._break_walls_r(0, 0)
 
     def _create_cells(self) -> None:
         self._cells = [
@@ -164,6 +172,68 @@ class Maze:
         exit.draw()
         return
 
+    def _break_walls_r(self, i, j) -> None:
+        self._cells[i][j].visited = True
+
+        def get_adjacent(i2, j2) -> Union[Cell, bool]:
+            try:
+                if i2 < 0 or j2 < 0:
+                    return False
+                return self._cells[i2][j2]
+            except IndexError:
+                return False
+
+        def four_directions(i2, j2) -> dict[str, Cell]:
+            # Define directions and their coordinate adjustments
+            Grid = namedtuple("Grid", "col row")
+            directions = {
+                "top": (0, -1),
+                "right": (1, 0),
+                "bottom": (0, 1),
+                "left": (-1, 0),
+            }
+
+            adjacent_cells = {}
+
+            for direction, (di, dj) in directions.items():
+                loc = Grid(col=i2 + di, row=j2 + dj)
+                adjacent = get_adjacent(loc.col, loc.row)
+                if adjacent and not adjacent.visited:
+                    adjacent_cells[direction] = loc
+
+            return adjacent_cells
+
+        while True:
+            valid_directions = four_directions(i, j)
+            if not any(valid_directions.values()):
+                break
+            direction = random.choice(list(valid_directions))
+            adj_cell = valid_directions[direction]
+
+            if direction == "top":
+                self._cells[i][j].has_top_wall = False
+                self._cells[i][j].draw()
+                self._cells[adj_cell.col][adj_cell.row].has_bottom_wall = False
+                self._cells[adj_cell.col][adj_cell.row].draw()
+            if direction == "right":
+                self._cells[i][j].has_right_wall = False
+                self._cells[i][j].draw()
+                self._cells[adj_cell.col][adj_cell.row].has_left_wall = False
+                self._cells[adj_cell.col][adj_cell.row].draw()
+            if direction == "bottom":
+                self._cells[i][j].has_bottom_wall = False
+                self._cells[i][j].draw()
+                self._cells[adj_cell.col][adj_cell.row].has_top_wall = False
+                self._cells[adj_cell.col][adj_cell.row].draw()
+            if direction == "left":
+                self._cells[i][j].has_left_wall = False
+                self._cells[i][j].draw()
+                self._cells[adj_cell.col][adj_cell.row].has_right_wall = False
+                self._cells[adj_cell.col][adj_cell.row].draw()
+
+            self._animate()
+            self._break_walls_r(adj_cell.col, adj_cell.row)
+
 
 class Window:
     def __init__(self, width, height):
@@ -194,15 +264,10 @@ class Window:
 
 
 def main():
-    win = Window(800, 600)
-    maze = Maze(50, 50, 10, 15, 30, 30, win)
 
     try:
-        cell1 = maze._cells[0][0]  # Access the cell at the top-left corner
-        cell2 = maze._cells[1][0]  # Access a neighboring cell
-        cell1.draw_move(cell2, True)
-        cell1.draw_move(cell2, False)
-
+        win = Window(800, 600)
+        maze = Maze(50, 50, 25, 25, 30, 30, win, 0)
     except Exception as e:
         print(f"Error: {e}")
 
