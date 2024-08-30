@@ -108,6 +108,13 @@ class Cell:
 
 
 class Maze:
+    WALL_MAP = {
+        "top": "has_top_wall",
+        "bottom": "has_bottom_wall",
+        "left": "has_left_wall",
+        "right": "has_right_wall",
+    }
+
     def __init__(
         self,
         x1,
@@ -173,11 +180,7 @@ class Maze:
         exit.draw()
         return
 
-    def _break_walls_r(self, i, j) -> None:
-        if not self._cells:
-            return
-        self._cells[i][j].visited = True
-
+    def _four_directions(self, i2, j2) -> dict[str, tuple[int, int]]:
         def get_adjacent(i2, j2) -> Union[Cell, bool]:
             try:
                 if i2 < 0 or j2 < 0:
@@ -186,28 +189,31 @@ class Maze:
             except IndexError:
                 return False
 
-        def four_directions(i2, j2) -> dict[str, Cell]:
-            # Define directions and their coordinate adjustments
-            Grid = namedtuple("Grid", "col row")
-            directions = {
-                "top": (0, -1),
-                "right": (1, 0),
-                "bottom": (0, 1),
-                "left": (-1, 0),
-            }
+        Grid = namedtuple("Grid", "col row")
+        directions = {
+            "top": (0, -1),
+            "right": (1, 0),
+            "bottom": (0, 1),
+            "left": (-1, 0),
+        }
 
-            adjacent_cells = {}
+        adjacent_cells = {}
 
-            for direction, (di, dj) in directions.items():
-                loc = Grid(col=i2 + di, row=j2 + dj)
-                adjacent = get_adjacent(loc.col, loc.row)
-                if adjacent and not adjacent.visited:
-                    adjacent_cells[direction] = loc
+        for direction, (di, dj) in directions.items():
+            loc = Grid(col=i2 + di, row=j2 + dj)
+            adjacent = get_adjacent(loc.col, loc.row)
+            if adjacent and not adjacent.visited:
+                adjacent_cells[direction] = loc
 
-            return adjacent_cells
+        return adjacent_cells
+
+    def _break_walls_r(self, i, j) -> None:
+        if not self._cells:
+            return
+        self._cells[i][j].visited = True
 
         while True:
-            valid_directions = four_directions(i, j)
+            valid_directions = self._four_directions(i, j)
             if not any(valid_directions.values()):
                 break
             direction = random.choice(list(valid_directions))
@@ -237,10 +243,32 @@ class Maze:
             self._animate()
             self._break_walls_r(adj_cell.col, adj_cell.row)
 
-    def _reset_cells_visited(self):
+    def _reset_cells_visited(self) -> None:
         for col in self._cells:
             for cell in col:
                 cell.visited = False
+
+    def _solve_r(self, i=0, j=0) -> bool:
+        self._animate()
+        self._cells[i][j].visited = True
+        if self._cells[i][j] is self._cells[-1][-1]:
+            return True
+
+        valid_directions = self._four_directions(i, j)
+        for direction in valid_directions:
+            has_wall = getattr(self._cells[i][j], self.WALL_MAP[direction])
+            adj_cell_location = valid_directions[direction]
+            adj_cell = self._cells[adj_cell_location.col][adj_cell_location.row]
+            if not has_wall and not adj_cell.visited:
+                self._cells[i][j].draw_move(adj_cell)
+                if self._solve_r(adj_cell_location.col, adj_cell_location.row):
+                    return True
+                self._cells[i][j].draw_move(adj_cell, undo=True)
+
+        return False
+
+    def solve(self) -> bool:
+        return self._solve_r()
 
 
 class Window:
@@ -275,7 +303,8 @@ def main():
 
     try:
         win = Window(800, 600)
-        maze = Maze(50, 50, 15, 15, 30, 30, win, 0)
+        maze = Maze(50, 50, 10, 10, 30, 30, win)
+        maze.solve()
     except Exception as e:
         print(f"Error: {e}")
 
