@@ -132,6 +132,7 @@ class Maze:
         if seed is not None:
             random.seed(seed)
         self._break_walls_r(0, 0)
+        self._reset_cells_visited()
 
     def _create_cells(self) -> None:
         self._cells = [
@@ -173,6 +174,8 @@ class Maze:
         return
 
     def _break_walls_r(self, i, j) -> None:
+        if not self._cells:
+            return
         self._cells[i][j].visited = True
 
         def get_adjacent(i2, j2) -> Union[Cell, bool]:
@@ -234,6 +237,11 @@ class Maze:
             self._animate()
             self._break_walls_r(adj_cell.col, adj_cell.row)
 
+    def _reset_cells_visited(self):
+        for col in self._cells:
+            for cell in col:
+                cell.visited = False
+
 
 class Window:
     def __init__(self, width, height):
@@ -267,7 +275,7 @@ def main():
 
     try:
         win = Window(800, 600)
-        maze = Maze(50, 50, 25, 25, 30, 30, win, 0)
+        maze = Maze(50, 50, 15, 15, 30, 30, win, 0)
     except Exception as e:
         print(f"Error: {e}")
 
